@@ -2,27 +2,41 @@
 #define DATABASE_H
 
 #include "Student.h"
-#include <vector>
 #include <string>
 
-namespace MyDB {
+class Database {
+private:
+    Student* students;
+    int size;
+    int capacity;
 
-    void load(std::vector<Student>& students, std::string filename);
-    void save(std::vector<Student>& students, std::string filename);
+    void resize();
+    int findById(int id) const;
 
-    void showAll(std::vector<Student>& students);
+public:
+    Database();
+    Database(const Database& other);
+    ~Database();
 
-    void findByName(std::vector<Student>& students, std::string search);
-    void findByGroup(std::vector<Student>& students, std::string search);
-    void findById(std::vector<Student>& students, int id);
-    void findByGrade(std::vector<Student>& students, double minGrade);
-    void findByGroupAndName(std::vector<Student>& students, std::string group, std::string name);
+    Database& operator=(const Database& other);
 
-    void add(std::vector<Student>& students);
-    void remove(std::vector<Student>& students);
-    void edit(std::vector<Student>& students);
+    void loadFromFile(std::string filename);
+    void saveToFile(std::string filename);
 
-    int searchByIdHelper(std::vector<Student>& students, int id);
-}
+    void printAll() const;
+
+    void searchByName(std::string search) const;
+    void searchByGroup(std::string search) const;
+    void searchById(int id) const;
+    void searchByGrade(double minGrade) const;
+    void searchByGroupAndName(std::string group, std::string name) const;
+
+    void addStudent();
+    void removeStudent();
+    void editStudent();
+
+    int getSize() const;
+    bool isEmpty() const;
+};
 
 #endif
