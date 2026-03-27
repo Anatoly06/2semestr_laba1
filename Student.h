@@ -14,6 +14,8 @@ private:
 public:
     Student();
     Student(std::string n, std::string g, int i, double ag);
+    Student(const Student& other);
+    ~Student();
 
     std::string getName() const;
     std::string getGroup() const;
@@ -24,6 +26,11 @@ public:
     void setGroup(std::string g);
     void setId(int i);
     void setAvgGrade(double ag);
+
+    Student& operator=(const Student& other);
+
+    friend std::ostream& operator<<(std::ostream& os, const Student& s);
+    friend std::istream& operator>>(std::istream& is, Student& s);
 };
 
 #endif
