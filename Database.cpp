@@ -4,238 +4,298 @@
 
 using namespace std;
 
-namespace MyDB {
+Database::Database() {
+    students = nullptr;
+    size = 0;
+    capacity = 0;
+}
 
-    void load(vector<Student>& students, string filename) {
-        ifstream file(filename.c_str());
-        if (!file.is_open()) {
-            return;
+Database::Database(const Database& other) {
+    size = other.size;
+    capacity = other.capacity;
+    students = new Student[capacity];
+    for (int i = 0; i < size; i++) {
+        students[i] = other.students[i];
+    }
+}
+
+Database::~Database() {
+    if (students != nullptr) {
+        delete[] students;
+    }
+}
+
+Database& Database::operator=(const Database& other) {
+    if (this != &other) {
+        delete[] students;
+
+        size = other.size;
+        capacity = other.capacity;
+        students = new Student[capacity];
+        for (int i = 0; i < size; i++) {
+            students[i] = other.students[i];
         }
+    }
+    return *this;
+}
 
-        string line;
-        while (getline(file, line)) {
-            if (line.empty()) continue;
-
-            size_t p1 = line.find('|');
-            size_t p2 = line.find('|', p1 + 1);
-            size_t p3 = line.find('|', p2 + 1);
-
-            if (p1 != string::npos && p2 != string::npos && p3 != string::npos) {
-                string name = line.substr(0, p1);
-                string group = line.substr(p1 + 1, p2 - p1 - 1);
-                int id = stoi(line.substr(p2 + 1, p3 - p2 - 1));
-                double grade = stod(line.substr(p3 + 1));
-
-                students.push_back(Student(name, group, id, grade));
-            }
-        }
-        file.close();
-        cout << "Çàãðóæåíî " << students.size() << " ñòóäåíòîâ" << endl;
+void Database::resize() {
+    int newCapacity;
+    if (capacity == 0) {
+        newCapacity = 10;
+    }
+    else {
+        newCapacity = capacity * 2;
     }
 
-    void save(vector<Student>& students, string filename) {
-        ofstream file(filename.c_str());
-        if (!file.is_open()) {
-            cout << "Îøèáêà ñîõðàíåíèÿ!" << endl;
-            return;
-        }
+    Student* newStudents = new Student[newCapacity];
+    for (int i = 0; i < size; i++) {
+        newStudents[i] = students[i];
+    }
 
-        for (int i = 0; i < students.size(); i++) {
-            file << students[i].getName() << "|"
-                << students[i].getGroup() << "|"
-                << students[i].getId() << "|"
+    if (students != nullptr) {
+        delete[] students;
+    }
+    students = newStudents;
+    capacity = newCapacity;
+}
+
+int Database::findById(int id) const {
+    for (int i = 0; i < size; i++) {
+        if (students[i].getId() == id) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+void Database::loadFromFile(string filename) {
+    ifstream file(filename.c_str());
+    if (!file.is_open()) {
+        cout << "Ð¤Ð°Ð¹Ð» " << filename << " Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½, ÑÐ¾Ð·Ð´Ð°ÐµÐ¼ Ð½Ð¾Ð²ÑƒÑŽ Ð±Ð°Ð·Ñƒ" << endl;
+        return;
+    }
+
+    Student temp;
+    while (file >> temp) {
+        if (size >= capacity) {
+            resize();
+        }
+        students[size] = temp;
+        size++;
+    }
+
+    file.close();
+    cout << "Ð—Ð°Ð³Ñ€ÑƒÐ¶ÐµÐ½Ð¾ " << size << " ÑÑ‚ÑƒÐ´ÐµÐ½Ñ‚Ð¾Ð² Ð¸Ð· Ñ„Ð°Ð¹Ð»Ð° " << filename << endl;
+}
+
+void Database::saveToFile(string filename) {
+    ofstream file(filename.c_str());
+    if (!file.is_open()) {
+        cout << "ÐžÑˆÐ¸Ð±ÐºÐ° ÑÐ¾Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¸Ñ Ð² Ñ„Ð°Ð¹Ð» " << filename << "!" << endl;
+        return;
+    }
+
+    for (int i = 0; i < size; i++) {
+        file << students[i] << endl;
+    }
+
+    file.close();
+    cout << "Ð¡Ð¾Ñ…Ñ€Ð°Ð½ÐµÐ½Ð¾ " << size << " Ð·Ð°Ð¿Ð¸ÑÐµÐ¹ Ð² Ñ„Ð°Ð¹Ð» " << filename << endl;
+}
+
+void Database::printAll() const {
+    if (size == 0) {
+        cout << "Ð²ÑÐµÑ… Ð¾Ñ‚Ñ‡Ð¸ÑÐ»Ð¸Ð»Ð¸" << endl;
+        return;
+    }
+
+    for (int i = 0; i < size; i++) {
+        cout << "Ð¡Ñ‚ÑƒÐ´ÐµÐ½Ñ‚ #" << i + 1 << endl;
+        cout << "Ð¤Ð˜Ðž: " << students[i].getName() << endl;
+        cout << "Ð“Ñ€ÑƒÐ¿Ð¿Ð°: " << students[i].getGroup() << endl;
+        cout << "ID: " << students[i].getId() << endl;
+        cout << "Ð¡Ñ€. Ð±Ð°Ð»Ð»: " << students[i].getAvgGrade() << endl;
+    }
+}
+
+void Database::searchByName(string search) const {
+    bool found = false;
+    cout << "\nÐ ÐµÐ·ÑƒÐ»ÑŒÑ‚Ð°Ñ‚Ñ‹ Ð¿Ð¾Ð¸ÑÐºÐ° Ð¿Ð¾ Ð¸Ð¼ÐµÐ½Ð¸ \"" << search << "\":" << endl;
+
+    for (int i = 0; i < size; i++) {
+        if (students[i].getName().find(search) != string::npos) {
+            cout << "ID: " << students[i].getId() << " | "
+                << students[i].getName() << " | "
+                << students[i].getGroup() << " | "
                 << students[i].getAvgGrade() << endl;
-        }
-        file.close();
-        cout << "Ñîõðàíåíî " << students.size() << " çàïèñåé" << endl;
-    }
-
-    void showAll(vector<Student>& students) {
-        if (students.size() == 0) {
-            cout << "âñåõ îò÷èñëèëè" << endl;
-            return;
-        }
-
-        for (int i = 0; i < students.size(); i++) {
-            cout << endl << "Ñòóäåíò #" << i + 1 << endl;
-            cout << "ÔÈÎ: " << students[i].getName() << endl;
-            cout << "Ãðóïïà: " << students[i].getGroup() << endl;
-            cout << "ID: " << students[i].getId() << endl;
-            cout << "Ñð. áàëë: " << students[i].getAvgGrade() << endl;
+            found = true;
         }
     }
 
-    void findByName(vector<Student>& students, string search) {
-        bool found = false;
-        cout << "\nÐåçóëüòàòû ïîèñêà ïî èìåíè \"" << search << "\":" << endl;
+    if (!found) cout << "ÐÐ¸Ñ‡ÐµÐ³Ð¾ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð¾" << endl;
+}
 
-        for (int i = 0; i < students.size(); i++) {
-            if (students[i].getName().find(search) != string::npos) {
-                cout << "ID: " << students[i].getId() << " | "
-                    << students[i].getName() << " | "
-                    << students[i].getGroup() << " | "
-                    << students[i].getAvgGrade() << endl;
-                found = true;
-            }
+void Database::searchByGroup(string search) const {
+    bool found = false;
+    cout << "\nÐ ÐµÐ·ÑƒÐ»ÑŒÑ‚Ð°Ñ‚Ñ‹ Ð¿Ð¾Ð¸ÑÐºÐ° Ð¿Ð¾ Ð³Ñ€ÑƒÐ¿Ð¿Ðµ \"" << search << "\":" << endl;
+
+    for (int i = 0; i < size; i++) {
+        if (students[i].getGroup() == search) {
+            cout << "ID: " << students[i].getId() << " | "
+                << students[i].getName() << " | "
+                << students[i].getGroup() << " | "
+                << students[i].getAvgGrade() << endl;
+            found = true;
         }
-
-        if (!found) cout << "Íè÷åãî íå íàéäåíî" << endl;
     }
 
-    void findByGroup(vector<Student>& students, string search) {
-        bool found = false;
-        cout << "\nÐåçóëüòàòû ïîèñêà ïî ãðóïïå \"" << search << "\":" << endl;
+    if (!found) cout << "ÐÐ¸Ñ‡ÐµÐ³Ð¾ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð¾" << endl;
+}
 
-        for (int i = 0; i < students.size(); i++) {
-            if (students[i].getGroup() == search) {
-                cout << "ID: " << students[i].getId() << " | "
-                    << students[i].getName() << " | "
-                    << students[i].getGroup() << " | "
-                    << students[i].getAvgGrade() << endl;
-                found = true;
-            }
+void Database::searchById(int id) const {
+    int index = findById(id);
+    if (index != -1) {
+        cout << "\nÐÐ°Ð¹Ð´ÐµÐ½ ÑÑ‚ÑƒÐ´ÐµÐ½Ñ‚:" << endl;
+        cout << "Ð¤Ð˜Ðž: " << students[index].getName() << endl;
+        cout << "Ð“Ñ€ÑƒÐ¿Ð¿Ð°: " << students[index].getGroup() << endl;
+        cout << "Ð¡Ñ€. Ð±Ð°Ð»Ð»: " << students[index].getAvgGrade() << endl;
+    }
+    else {
+        cout << "Ð¡Ñ‚ÑƒÐ´ÐµÐ½Ñ‚ Ñ ID " << id << " Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½" << endl;
+    }
+}
+
+void Database::searchByGrade(double minGrade) const {
+    bool found = false;
+    cout << "\nÐ¡Ñ‚ÑƒÐ´ÐµÐ½Ñ‚Ñ‹ ÑÐ¾ ÑÑ€ÐµÐ´Ð½Ð¸Ð¼ Ð±Ð°Ð»Ð»Ð¾Ð¼ >= " << minGrade << ":" << endl;
+
+    for (int i = 0; i < size; i++) {
+        if (students[i].getAvgGrade() >= minGrade) {
+            cout << "ID: " << students[i].getId() << " | "
+                << students[i].getName() << " | "
+                << students[i].getGroup() << " | "
+                << students[i].getAvgGrade() << endl;
+            found = true;
         }
-
-        if (!found) cout << "Íè÷åãî íå íàéäåíî" << endl;
     }
 
-    void findById(vector<Student>& students, int id) {
-        for (int i = 0; i < students.size(); i++) {
-            if (students[i].getId() == id) {
-                cout << "\nÍàéäåí ñòóäåíò:" << endl;
-                cout << "ÔÈÎ: " << students[i].getName() << endl;
-                cout << "Ãðóïïà: " << students[i].getGroup() << endl;
-                cout << "Ñð. áàëë: " << students[i].getAvgGrade() << endl;
-                return;
-            }
+    if (!found) cout << "ÐÐ¸Ñ‡ÐµÐ³Ð¾ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð¾" << endl;
+}
+
+void Database::searchByGroupAndName(string group, string name) const {
+    bool found = false;
+    cout << "\nÐŸÐ¾Ð¸ÑÐº Ð¿Ð¾ Ð³Ñ€ÑƒÐ¿Ð¿Ðµ \"" << group << "\" Ð¸ Ð¸Ð¼ÐµÐ½Ð¸ \"" << name << "\":" << endl;
+
+    for (int i = 0; i < size; i++) {
+        if (students[i].getGroup() == group &&
+            students[i].getName().find(name) != string::npos) {
+            cout << "ID: " << students[i].getId() << " | "
+                << students[i].getName() << " | "
+                << students[i].getAvgGrade() << endl;
+            found = true;
         }
-        cout << "Ñòóäåíò ñ ID " << id << " íå íàéäåí" << endl;
     }
 
-    void findByGrade(vector<Student>& students, double minGrade) {
-        bool found = false;
-        cout << "\nÑòóäåíòû ñî ñðåäíèì áàëëîì >= " << minGrade << ":" << endl;
+    if (!found) cout << "ÐÐ¸Ñ‡ÐµÐ³Ð¾ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ð¾" << endl;
+}
 
-        for (int i = 0; i < students.size(); i++) {
-            if (students[i].getAvgGrade() >= minGrade) {
-                cout << "ID: " << students[i].getId() << " | "
-                    << students[i].getName() << " | "
-                    << students[i].getGroup() << " | "
-                    << students[i].getAvgGrade() << endl;
-                found = true;
-            }
-        }
+void Database::addStudent() {
+    string name, group;
+    int id;
+    double grade;
 
-        if (!found) cout << "Íè÷åãî íå íàéäåíî" << endl;
+    cout << "\nÐ”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ ÑÑ‚ÑƒÐ´ÐµÐ½Ñ‚Ð°" << endl;
+    cout << "Ð¤Ð˜Ðž: ";
+    cin.ignore();
+    getline(cin, name);
+
+    cout << "Ð“Ñ€ÑƒÐ¿Ð¿Ð°: ";
+    getline(cin, group);
+
+    cout << "ID: ";
+    cin >> id;
+
+    if (findById(id) != -1) {
+        cout << "Ð¢Ð°ÐºÐ¾Ð¹ ID ÑƒÐ¶Ðµ ÑÑƒÑ‰ÐµÑÑ‚Ð²ÑƒÐµÑ‚!" << endl;
+        return;
     }
 
-    void findByGroupAndName(vector<Student>& students, string group, string name) {
-        bool found = false;
-        cout << "\nÏîèñê ïî ãðóïïå \"" << group << "\" è èìåíè \"" << name << "\":" << endl;
+    cout << "Ð¡Ñ€ÐµÐ´Ð½Ð¸Ð¹ Ð±Ð°Ð»Ð»: ";
+    cin >> grade;
 
-        for (int i = 0; i < students.size(); i++) {
-            if (students[i].getGroup() == group &&
-                students[i].getName().find(name) != string::npos) {
-                cout << "ID: " << students[i].getId() << " | "
-                    << students[i].getName() << " | "
-                    << students[i].getAvgGrade() << endl;
-                found = true;
-            }
-        }
-
-        if (!found) cout << "Íè÷åãî íå íàéäåíî" << endl;
+    if (size >= capacity) {
+        resize();
     }
 
-    int searchByIdHelper(vector<Student>& students, int id) {
-        for (int i = 0; i < students.size(); i++) {
-            if (students[i].getId() == id) {
-                return i;
-            }
-        }
-        return -1;
+    students[size] = Student(name, group, id, grade);
+    size++;
+    cout << "Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð¾!" << endl;
+}
+
+void Database::removeStudent() {
+    int id;
+    cout << "\nÐ’Ð²ÐµÐ´Ð¸Ñ‚Ðµ ID Ð´Ð»Ñ ÑƒÐ´Ð°Ð»ÐµÐ½Ð¸Ñ: ";
+    cin >> id;
+
+    int index = findById(id);
+    if (index == -1) {
+        cout << "Ð¡Ñ‚ÑƒÐ´ÐµÐ½Ñ‚ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½" << endl;
+        return;
     }
 
-    void add(vector<Student>& students) {
-        string name, group;
-        int id;
-        double grade;
+    for (int i = index; i < size - 1; i++) {
+        students[i] = students[i + 1];
+    }
+    size--;
 
-        cout << "\nÄîáàâëåíèå ñòóäåíòà" << endl;
-        cout << "ÔÈÎ: ";
-        cin.ignore();
-        getline(cin, name);
+    cout << "ÑÑ‚ÑƒÐ´ÐµÐ½Ñ‚ Ð¾Ñ‚Ñ‡Ð¸ÑÐ»ÐµÐ½" << endl;
+}
 
-        cout << "Ãðóïïà: ";
-        getline(cin, group);
+void Database::editStudent() {
+    int id;
+    cout << "\nÐ’Ð²ÐµÐ´Ð¸Ñ‚Ðµ ID Ð´Ð»Ñ Ñ€ÐµÐ´Ð°ÐºÑ‚Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ñ: ";
+    cin >> id;
 
-        cout << "ID: ";
-        cin >> id;
-
-        if (searchByIdHelper(students, id) != -1) {
-            cout << "Òàêîé ID óæå ñóùåñòâóåò!" << endl;
-            return;
-        }
-
-        cout << "Ñðåäíèé áàëë: ";
-        cin >> grade;
-
-        students.push_back(Student(name, group, id, grade));
-        cout << "Äîáàâëåíî!" << endl;
+    int index = findById(id);
+    if (index == -1) {
+        cout << "Ð¡Ñ‚ÑƒÐ´ÐµÐ½Ñ‚ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½" << endl;
+        return;
     }
 
-    void remove(vector<Student>& students) {
-        int id;
-        cout << "\nÂâåäèòå ID äëÿ óäàëåíèÿ: ";
-        cin >> id;
+    cout << "\nÐ¢ÐµÐºÑƒÑ‰Ð¸Ðµ Ð´Ð°Ð½Ð½Ñ‹Ðµ:" << endl;
+    cout << "Ð¤Ð˜Ðž: " << students[index].getName() << endl;
+    cout << "Ð“Ñ€ÑƒÐ¿Ð¿Ð°: " << students[index].getGroup() << endl;
+    cout << "Ð¡Ñ€. Ð±Ð°Ð»Ð»: " << students[index].getAvgGrade() << endl;
 
-        int index = searchByIdHelper(students, id);
-        if (index == -1) {
-            cout << "Ñòóäåíò íå íàéäåí" << endl;
-            return;
-        }
+    cout << "\nÐ’Ð²ÐµÐ´Ð¸Ñ‚Ðµ Ð½Ð¾Ð²Ñ‹Ðµ Ð´Ð°Ð½Ð½Ñ‹Ðµ (Enter - Ð¾ÑÑ‚Ð°Ð²Ð¸Ñ‚ÑŒ ÐºÐ°Ðº ÐµÑÑ‚ÑŒ):" << endl;
+    cin.ignore();
 
-        students.erase(students.begin() + index);
-        cout << "ñòóäåíò îò÷èñëåí" << endl;
+    string newName;
+    cout << "ÐÐ¾Ð²Ð¾Ðµ Ð¤Ð˜Ðž: ";
+    getline(cin, newName);
+    if (newName != "") students[index].setName(newName);
+
+    string newGroup;
+    cout << "ÐÐ¾Ð²Ð°Ñ Ð³Ñ€ÑƒÐ¿Ð¿Ð°: ";
+    getline(cin, newGroup);
+    if (newGroup != "") students[index].setGroup(newGroup);
+
+    string newGrade;
+    cout << "ÐÐ¾Ð²Ñ‹Ð¹ ÑÑ€ÐµÐ´Ð½Ð¸Ð¹ Ð±Ð°Ð»Ð»: ";
+    getline(cin, newGrade);
+    if (newGrade != "") {
+        double g = stod(newGrade);
+        students[index].setAvgGrade(g);
     }
 
-    void edit(vector<Student>& students) {
-        int id;
-        cout << "\nÂâåäèòå ID äëÿ ðåäàêòèðîâàíèÿ: ";
-        cin >> id;
+    cout << "ÐžÐ±Ð½Ð¾Ð²Ð»ÐµÐ½Ð¾!" << endl;
+}
 
-        int index = searchByIdHelper(students, id);
-        if (index == -1) {
-            cout << "Ñòóäåíò íå íàéäåí" << endl;
-            return;
-        }
+int Database::getSize() const {
+    return size;
+}
 
-        cout << "\nÒåêóùèå äàííûå:" << endl;
-        cout << "ÔÈÎ: " << students[index].getName() << endl;
-        cout << "Ãðóïïà: " << students[index].getGroup() << endl;
-        cout << "Ñð. áàëë: " << students[index].getAvgGrade() << endl;
-
-        cout << "\nÂâåäèòå íîâûå äàííûå (Enter - îñòàâèòü êàê åñòü):" << endl;
-        cin.ignore();
-
-        string newName;
-        cout << "Íîâîå ÔÈÎ: ";
-        getline(cin, newName);
-        if (newName != "") students[index].setName(newName);
-
-        string newGroup;
-        cout << "Íîâàÿ ãðóïïà: ";
-        getline(cin, newGroup);
-        if (newGroup != "") students[index].setGroup(newGroup);
-
-        string newGrade;
-        cout << "Íîâûé ñðåäíèé áàëë: ";
-        getline(cin, newGrade);
-        if (newGrade != "") {
-            double g = stod(newGrade);
-            students[index].setAvgGrade(g);
-        }
-
-        cout << "Îáíîâëåíî!" << endl;
-    }
-
+bool Database::isEmpty() const {
+    return size == 0;
 }
